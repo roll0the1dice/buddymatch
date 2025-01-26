@@ -1,0 +1,159 @@
+package com.example.buddy_match.controller;
+
+import com.example.buddy_match.model.BuddyUser;
+import com.example.buddy_match.model.request.BuddyUserLoginRequest;
+import com.example.buddy_match.model.request.BuddyUserRegisterRequest;
+import com.example.buddy_match.model.request.BuddyUserUpdateRequest;
+
+import ch.qos.logback.core.util.StringUtil;
+import io.micrometer.common.util.StringUtils;
+import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletRequest;
+
+import java.util.Collections;
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.hateoas.CollectionModel;
+import org.springframework.hateoas.EntityModel;
+import org.springframework.http.ResponseEntity;
+import org.springframework.util.CollectionUtils;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+/**
+ * This is a generated interface for demonstration purposes.
+ */
+@RestController
+@RequestMapping("/buddyuser")
+public class BuddyUserController {
+    /** This is an example service. */
+    @Resource
+    private BuddyUserServiceImpl service;
+
+    public BuddyUserController(BuddyUserServiceImpl service) {
+        this.service = service;
+    }
+
+    @GetMapping("/all")
+    public CollectionModel<EntityModel<BuddyUser>> all() {
+        return service.all();
+    }
+
+    @PostMapping("/create")
+    public BuddyUser create(@RequestBody BuddyUser newBuddyUser) {
+        return service.create(newBuddyUser);
+    }
+
+    @GetMapping("/one/{id}")
+    public EntityModel<BuddyUser> one(@PathVariable Long id) {
+        return service.one(id);
+    }
+
+    @PutMapping("/replaceBuddyUser/{id}")
+    public ResponseEntity<?> replaceBuddyUser(@RequestBody BuddyUser newBuddyUser, @PathVariable Long id) {
+        return service.replaceBuddyUser(newBuddyUser,id);
+    }
+
+    @DeleteMapping("/deleteBuddyUser/{id}")
+    public ResponseEntity<?> deleteBuddyUser(@PathVariable Long id) {
+        return service.deleteBuddyUser(id);
+    }
+    
+    @PostMapping("/register")
+    public String userRegister(@RequestBody BuddyUserRegisterRequest buddyUserRegisterRequest) {
+        //TODO: process POST request
+        if (buddyUserRegisterRequest == null)
+            return null;
+
+        String userName = buddyUserRegisterRequest.getUsername();
+        String userPassword = buddyUserRegisterRequest.getPassword();
+        String checkPassword = buddyUserRegisterRequest.getCheckPassword();
+
+        if (StringUtil.isNullOrEmpty(userName) || StringUtil.isNullOrEmpty(userPassword) || StringUtil.isNullOrEmpty(checkPassword))
+            return null;
+        
+        return service.registerUser(userName, userPassword, checkPassword);
+    }
+    
+    @PostMapping("/login")
+    public BuddyUser userLogin(@RequestBody BuddyUserLoginRequest testUserLoginRequest, HttpServletRequest request) {
+        //TODO: process POST request
+        if (testUserLoginRequest == null)
+            return null;
+
+        String userName = testUserLoginRequest.getUsername();
+        String userPassword = testUserLoginRequest.getPassword();
+
+        if (StringUtil.isNullOrEmpty(userName) || StringUtil.isNullOrEmpty(userPassword))
+            return null;
+
+        return service.doLogin(userName, userPassword, request);
+    }
+
+    @GetMapping("/search")
+    public CollectionModel<EntityModel<BuddyUser>> searchUser(@RequestParam String username, HttpServletRequest request) {
+
+        Object userObj = request.getSession().getAttribute(BuddyUserServiceImpl.USER_LOGIN_STATE);
+        BuddyUser user = (BuddyUser)userObj;
+
+
+        if(!StringUtils.isNotBlank(username)) 
+            return CollectionModel.of(Collections.emptyList());
+
+        return service.searchUser(username);
+    }
+
+    @GetMapping("/logout")
+    public ResponseEntity<?> userLogout(HttpServletRequest httpServletRequest) {
+       int res = service.userLogout(httpServletRequest);
+
+       if (res == 1)
+            return ResponseEntity.ok().build();
+
+        return ResponseEntity.notFound().build();
+    }
+    
+
+    @GetMapping("/current")
+    public ResponseEntity<?> getCurrent(HttpServletRequest httpServletRequest) {
+
+        BuddyUser buddyUser = service.getCurrent(httpServletRequest);
+
+        if (buddyUser == null)
+            return ResponseEntity.notFound().build();
+
+        return ResponseEntity.ok().body(buddyUser);
+    }
+
+    @GetMapping("/search/tags")
+    public ResponseEntity<?> searchUserByTags(@RequestParam List<String> tagNameList) {
+        if (CollectionUtils.isEmpty(tagNameList)) {
+            throw new BuddyUserNotFoundException();
+        }
+        for (var tag : tagNameList)
+            System.out.println(tag);
+
+        CollectionModel<EntityModel<BuddyUser>> userList = service.searchUserByTags(tagNameList);
+
+        if (userList.getContent().isEmpty())
+            throw new BuddyUserNotFoundException();
+
+        return ResponseEntity.ok().body(userList);
+    }
+
+    @PostMapping("/updateBuddyUser/")
+    public ResponseEntity<?> updateBuddyUser(@RequestBody BuddyUserUpdateRequest buddyUserUpdateRequest, HttpServletRequest httpServletRequest) throws NoSuchFieldException, SecurityException {
+        service.userLogout(httpServletRequest);
+        
+        return service.updateBuddyUser(buddyUserUpdateRequest);
+    }
+    
+}

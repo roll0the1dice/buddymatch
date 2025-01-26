@@ -1,0 +1,161 @@
+    @PostMapping("/register")
+    public String userRegister(@RequestBody TestUserRegisterRequest testUserRequest) {
+        //TODO: process POST request
+        if (testUserRequest == null)
+            return null;
+
+        String userName = testUserRequest.getUserName();
+        String userPassword = testUserRequest.getUserPassword();
+        String checkPassword = testUserRequest.getCheckPassword();
+
+        if (StringUtil.isNullOrEmpty(userName) || StringUtil.isNullOrEmpty(userPassword) || StringUtil.isNullOrEmpty(checkPassword))
+            return null;
+        
+        return service.registerUser(userName, userPassword, checkPassword);
+    }
+    
+    @PostMapping("/login")
+    public TestUser userLogin(@RequestBody TestUserLoginRequest testUserLoginRequest, HttpServletRequest request) {
+        //TODO: process POST request
+        if (testUserLoginRequest == null)
+            return null;
+
+        String userName = testUserLoginRequest.getUserName();
+        String userPassword = testUserLoginRequest.getUserPassword();
+
+        if (StringUtil.isNullOrEmpty(userName) || StringUtil.isNullOrEmpty(userPassword))
+            return null;
+
+        return service.doLogin(userName, userPassword, request);
+    }
+
+    @GetMapping("/search")
+    public CollectionModel<EntityModel<TestUser>> searchUser(@RequestParam String username, HttpServletRequest request) {
+
+        Object userObj = request.getSession().getAttribute(TestUserServiceImpl.USER_LOGIN_STATE);
+        TestUser user = (TestUser)userObj;
+
+        if(user.getUserState() != 1)
+            return CollectionModel.of(Collections.emptyList());
+
+        if(!StringUtils.isNotBlank(username)) 
+            return CollectionModel.of(Collections.emptyList());
+
+        return service.searchUser(username);
+    }
+
+    @GetMapping("/current")
+    public ResponseEntity<?> getCurrent(HttpServletRequest httpServletRequest) {
+
+        return ResponseEntity.ok().body(service.getCurrent(httpServletRequest));
+    }
+
+
+    @Override
+    public int userLogout(HttpServletRequest request) {
+        request.getSession().removeAttribute(USER_LOGIN_STATE);
+        
+        return 1;
+    }
+
+    public CollectionModel<EntityModel<BuddyUser>> searchUserByName(List<String> tagNameList) {
+        if (CollectionUtils.isEmpty(tagNameList)) {
+            throw new BuddyUserNotFoundException();
+        }
+
+        CustomSpecs<BuddyUser> customSpecs = new CustomSpecs<BuddyUser>();
+        for (var tagName : tagNameList) {
+            customSpecs = customSpecs._like("tagName", tagName);
+        }
+
+        List<EntityModel<BuddyUser>> userList = repository.findAll(customSpecs._generateSpecifications()).stream()
+        .map(assembler::toModel)
+        .collect(Collectors.toList());
+
+        return CollectionModel.of(userList, linkTo(methodOn(BuddyUserController.class).all()).withSelfRel());
+        
+    }
+
+    //@Override
+    public String registerUser(String userName, String userPassword, String checkPassword) {
+        // 验证用户名和密码是否包含特殊字符
+        if (ValidationUtil.hasSpecialCharacters(userName)) {
+            return "用户名不能包含特殊字符";
+        }
+        if (ValidationUtil.hasSpecialCharacters(userPassword)) {
+            return "密码不能包含特殊字符";
+        }
+        CustomSpecs<BuddyUser> customSpecs = new CustomSpecs<BuddyUser>();
+        customSpecs._equal("username", userName);
+        // 检查用户名是否已经存在
+        if (!repository.findAll(customSpecs._generateSpecifications()).isEmpty()) {
+            return "用户名已存在";
+        }
+
+        // 创建并保存用户
+        BuddyUser testUser = new BuddyUser();
+        testUser.se(userName);
+        testUser.setUserpassword(userPassword); // 注意：建议实际应用中对密码进行加密存储
+        
+        repository.save(testUser);
+
+        return "用户注册成功";
+    }
+
+    //@Override
+    public TestUser doLogin(String userName, String userPassword, HttpServletRequest httpServletRequest) {
+        if(StringUtil.isNullOrEmpty(userName)) 
+            return null;
+
+        if(userName.length() < 4)
+            return null;
+
+        if(userPassword.length() < 5)
+            return null;
+
+        if (ValidationUtil.hasSpecialCharacters(userName)) 
+            return null;
+        
+        if (ValidationUtil.hasSpecialCharacters(userPassword)) 
+            return null;
+
+        CustomSpecs<TestUser> customSpecs = new CustomSpecs<TestUser>();
+        customSpecs._equal("username", userName)._equal("userpassword", userPassword);
+        //customSpecs._like("userpassword", "123");
+
+        Optional<TestUser> user = repository.findOne(customSpecs._generateSpecifications());
+ 
+        if (user.isEmpty()) 
+            return null;
+
+        TestUser safetyUser = new TestUser();
+        safetyUser.setId(user.get().getId());
+        safetyUser.setUsername(user.get().getUsername());
+        safetyUser.setUseraccount("");
+        safetyUser.setAvatarurl(user.get().getAvatarurl());
+        safetyUser.setGender(user.get().getGender());
+        safetyUser.setPhone("");
+        safetyUser.setEmail("");
+        safetyUser.setAvatarurl("");
+        safetyUser.setUserpassword("");
+        safetyUser.setUserState(user.get().getUserState());
+        safetyUser.setCreatetime(new Date());
+        safetyUser.setUpdatetime(new Date());
+        safetyUser.setIsdelete((byte)0);
+
+        httpServletRequest.getSession().setAttribute(USER_LOGIN_STATE, safetyUser);
+
+        return safetyUser;
+    }
+
+    public TestUser getCurrent(HttpServletRequest httpServletRequest) {
+
+        Object obj = httpServletRequest.getSession().getAttribute(USER_LOGIN_STATE);
+        
+        // 检查类型并进行转换
+        if (obj instanceof TestUser) {
+            return (TestUser) obj; // 安全类型转换
+        } else {
+            return null; // 处理未找到或类型不匹配的情况
+        }
+    }
