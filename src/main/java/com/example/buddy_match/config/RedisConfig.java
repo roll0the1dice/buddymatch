@@ -15,7 +15,6 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 
 @Configuration
-@EnableSpringDataWebSupport(pageSerializationMode = EnableSpringDataWebSupport.PageSerializationMode.VIA_DTO)
 public class RedisConfig {
 
     @Bean

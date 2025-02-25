@@ -1,14 +1,14 @@
 package com.example.buddy_match.contorller;
 
-import com.example.buddy_match.dto.CustomPageImpl;
-import com.example.buddy_match.model.BuddyUser;
+import com.example.buddy_match.exception.BuddyUserNotFoundException;
+import com.example.buddy_match.exception.BusinessException;
+import com.example.buddy_match.model.atest.BuddyUser;
 import com.example.buddy_match.request.BuddyUserLoginRequest;
 import com.example.buddy_match.request.BuddyUserRegisterRequest;
 import com.example.buddy_match.request.BuddyUserUpdateRequest;
 import com.example.buddy_match.service.BuddyUserServiceImpl;
-import com.example.buddy_match.service.baseService.BadRequestException;
-import com.example.buddy_match.service.baseService.BuddyUserNotFoundException;
 import com.example.buddy_match.util.ApiResponse;
+import com.example.buddy_match.util.CustomPageImpl;
 
 import ch.qos.logback.core.util.StringUtil;
 import io.micrometer.common.util.StringUtils;
@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.coyote.BadRequestException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -48,39 +49,40 @@ import org.springframework.web.client.HttpServerErrorException.InternalServerErr
 @RequestMapping("/buddyuser")
 public class BuddyUserController {
     /** This is an example service. */
-    @Resource
-    private BuddyUserServiceImpl service;
 
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
+
+    @Resource
+    private BuddyUserServiceImpl service;
 
     public BuddyUserController(BuddyUserServiceImpl service) {
         this.service = service;
     }
 
     @GetMapping("/all")
-    public ResponseEntity<?> all() {
-        return ApiResponse.success(service.all());
+    public ResponseEntity<ApiResponse<CustomPageImpl<BuddyUser>>>  all(@RequestParam(defaultValue = "0") Integer page, @RequestParam(defaultValue = "10") Integer size) {
+        return ApiResponse.success(service.all(page,size));
     }
 
     @PostMapping("/create")
-    public ResponseEntity<?> create(@RequestBody BuddyUser newBuddyUser) {
+    public ResponseEntity<ApiResponse<BuddyUser>> create(@RequestBody BuddyUser newBuddyUser) {
         return ApiResponse.success(service.create(newBuddyUser));
     }
 
     @GetMapping("/one/{id}")
-    public ResponseEntity<?> one(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<BuddyUser>> one(@PathVariable Long id) {
         return ApiResponse.success(service.one(id));
     }
 
     @PutMapping("/replaceBuddyUser/{id}")
-    public ResponseEntity<?> replaceBuddyUser(@RequestBody BuddyUser newBuddyUser, @PathVariable Long id) {
-        return service.replaceBuddyUser(newBuddyUser,id);
+    public ResponseEntity<ApiResponse<BuddyUser>> replaceBuddyUser(@RequestBody BuddyUser newBuddyUser, @PathVariable Long id) {
+        return ApiResponse.success(service.replaceBuddyUser(newBuddyUser,id));
     }
 
     @DeleteMapping("/deleteBuddyUser/{id}")
-    public ResponseEntity<?> deleteBuddyUser(@PathVariable Long id) {
-        return service.deleteBuddyUser(id);
+    public ResponseEntity<ApiResponse<Boolean>> deleteBuddyUser(@PathVariable Long id) {
+        return ApiResponse.success(service.deleteBuddyUser(id));
     }
 
     @PostMapping("/register")
@@ -100,7 +102,7 @@ public class BuddyUserController {
     }
     
     @PostMapping("/login")
-    public ResponseEntity<?> userLogin(@RequestBody BuddyUserLoginRequest testUserLoginRequest, HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<BuddyUser>> userLogin(@RequestBody BuddyUserLoginRequest testUserLoginRequest, HttpServletRequest request) {
         //TODO: process POST request
         if (testUserLoginRequest == null)
             return ApiResponse.fail(40010, "登录请求参数错误");
@@ -120,7 +122,7 @@ public class BuddyUserController {
     }
 
     @GetMapping("/search")
-    public ResponseEntity<?> searchUser(@RequestParam String username, HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<List<BuddyUser>>> searchUser(@RequestParam String username, HttpServletRequest request) {
 
         Object userObj = request.getSession().getAttribute(BuddyUserServiceImpl.USER_LOGIN_STATE);
         BuddyUser user = (BuddyUser)userObj;
@@ -136,7 +138,7 @@ public class BuddyUserController {
     }
 
     @GetMapping("/logout")
-    public ResponseEntity<?> userLogout(HttpServletRequest httpServletRequest) {
+    public ResponseEntity<ApiResponse<Object>> userLogout(HttpServletRequest httpServletRequest) {
        int res = service.userLogout(httpServletRequest);
 
        if (res == 1)
@@ -147,7 +149,7 @@ public class BuddyUserController {
     
 
     @GetMapping("/current")
-    public ResponseEntity<?> getCurrent(HttpServletRequest httpServletRequest) {
+    public ResponseEntity<ApiResponse<BuddyUser>> getCurrent(HttpServletRequest httpServletRequest) {
 
         BuddyUser buddyUser = service.getCurrent(httpServletRequest);
 
@@ -158,7 +160,7 @@ public class BuddyUserController {
     }
 
     @GetMapping("/search/tags")
-    public ResponseEntity<?> searchUserByTags(@RequestParam List<String> tagNameList, HttpServletRequest httpServletRequest) {
+    public ResponseEntity<ApiResponse<List<BuddyUser>>> searchUserByTags(@RequestParam List<String> tagNameList, HttpServletRequest httpServletRequest) {
         BuddyUser buddyUser = service.getCurrent(httpServletRequest);
 
         if (buddyUser == null)
@@ -170,25 +172,25 @@ public class BuddyUserController {
         // for (var tag : tagNameList)
         //     System.out.println(tag);
 
-        CollectionModel<EntityModel<BuddyUser>> userList = service.searchUserByTags(tagNameList);
+        List<BuddyUser> userList = service.searchUserByTags(tagNameList);
 
-        if (userList.getContent().isEmpty())
+        if (userList.isEmpty())
             throw new BuddyUserNotFoundException();
 
-        return ResponseEntity.ok().body(userList);
+        return ApiResponse.success(userList);
     }
 
     @PostMapping("/updateBuddyUser/")
-    public ResponseEntity<?> updateBuddyUser(@RequestBody BuddyUserUpdateRequest buddyUserUpdateRequest, HttpServletRequest httpServletRequest) {
+    public ResponseEntity<ApiResponse<BuddyUser>>  updateBuddyUser(@RequestBody BuddyUserUpdateRequest buddyUserUpdateRequest, HttpServletRequest httpServletRequest) {
         //service.userLogout(httpServletRequest);
         
          try {
-            EntityModel<BuddyUser> res = (EntityModel<BuddyUser>)service.updateBuddyUser(buddyUserUpdateRequest).getBody();
+            BuddyUser res =service.updateBuddyUser(buddyUserUpdateRequest);
 
             if (res == null)
                 throw new BadRequestException("更新用户信息失败");
             
-            BuddyUser safetyUser = service.getSafetyUser(Optional.of(res.getContent()));
+            BuddyUser safetyUser = service.getSafetyUser(Optional.of(res));
 
             httpServletRequest.getSession().setAttribute(BuddyUserServiceImpl.USER_LOGIN_STATE, safetyUser);
 
@@ -204,7 +206,7 @@ public class BuddyUserController {
 
 
     @GetMapping("/getUsersByPage")
-    public ResponseEntity<?> getUsers(@RequestParam(defaultValue = "0") int page,
+    public ResponseEntity<ApiResponse<CustomPageImpl<BuddyUser>>> getUsers(@RequestParam(defaultValue = "0") int page,
                                @RequestParam(defaultValue = "10") int size, HttpServletRequest request) {
         BuddyUser loginUser = service.getCurrent(request);
         if (loginUser == null)
@@ -232,13 +234,13 @@ public class BuddyUserController {
     }
 
     @GetMapping("/match")
-    public ResponseEntity<?> matchUsers(@RequestParam(defaultValue = "3") long num, HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<List<BuddyUser>>> matchUsers(@RequestParam(defaultValue = "3") long num, HttpServletRequest request) {
         if (num <= 0 || num > 20) {
-            throw new BadRequestException("函数matchUsers参数错误");
+            throw new BusinessException("函数matchUsers参数错误");
         }
         BuddyUser currentUser = service.getCurrent(request);
         if (currentUser == null)
-            throw new BadRequestException("用户未登录");
+            throw new BusinessException("用户未登录");
             
         return ApiResponse.success(service.matchUsers(num, currentUser));
     }

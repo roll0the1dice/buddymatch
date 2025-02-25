@@ -11,13 +11,13 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import com.example.buddy_match.constant.UserConstant;
-import com.example.buddy_match.dto.CustomPageImpl;
-import com.example.buddy_match.model.BuddyUser;
-import com.example.buddy_match.model.Team;
-import com.example.buddy_match.service.baseService.TeamBaseService;
-import com.example.buddy_match.service.baseService.TeamModelAssembler;
-import com.example.buddy_match.service.baseService.TeamRepository;
+import com.example.buddy_match.model.atest.Team;
+import com.example.buddy_match.service.base.TeamBaseService;
+import com.example.buddy_match.service.base.TeamRepository;
+import com.example.buddy_match.util.CustomPageImpl;
 import com.example.buddy_match.util.CustomSpecs;
+
+import jakarta.annotation.Resource;
 
 /**
  * This is a generated Service for demonstration purposes.
@@ -25,20 +25,11 @@ import com.example.buddy_match.util.CustomSpecs;
 @Service
 public class TeamServiceImpl extends TeamBaseService implements TeamService {
     /** This is an example repository. */
+    @Resource
     private TeamRepository repository;
-
-    /** This is an example modelAssembler. */
-    private TeamModelAssembler assembler;
 
     public TeamServiceImpl() {
         super();
-    }
-
-    @Autowired
-    public TeamServiceImpl(TeamRepository repository, TeamModelAssembler assembler) {
-        super(repository,assembler);
-        this.repository = repository;
-        this.assembler = assembler;
     }
 
     public CustomPageImpl<Team> getTeamByPage(int page, int size, int teamStatus) {
@@ -52,6 +43,6 @@ public class TeamServiceImpl extends TeamBaseService implements TeamService {
 
         List<Team> pageTeamList = repository.findAll(customSpecs._generateSpecifications(), pageable).toList();
 
-        return new CustomPageImpl<Team>(pageTeamList, pageable, pageTeamList.size());
+        return new CustomPageImpl<Team>(pageTeamList, pageable, (long)pageTeamList.size());
     }
 }

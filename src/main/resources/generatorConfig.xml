@@ -11,41 +11,13 @@
     <!-- JDBC connection /home/linux/UserProject/demo/src/main/java/com/example/demo/generator/ServiceGeneratorPlugin.java -->
     <context id="MysqlContext" targetRuntime="MyBatis3">
 
-        <plugin type="com.example.buddy_match.plugin.CustomizedPlugin" >
+        <plugin type="com.example.custom_plugin.plugin.CustomizedPlugin" >
           <property name="targetPackage" value="com.example.buddy_match.generateForBuddyUser"/>
         </plugin>
         
-        <!-- <plugin type="com.example.buddy_match.plugin.RepositoryPlugin" >
-          <property name="targetPackage" value="com.example.buddy_match.generateForBuddyUser"/>
-        </plugin>
-        <plugin type="com.example.buddy_match.plugin.NotFoundExceptionPlugin">
-          <property name="targetPackage" value="com.example.buddy_match.generateForBuddyUser"/>
-        </plugin>
-        <plugin type="com.example.buddy_match.plugin.NotFoundAdvicePlugin">
-          <property name="targetPackage" value="com.example.buddy_match.generateForBuddyUser"/>
-        </plugin>
-        <plugin type="com.example.buddy_match.plugin.ModelAssemblerPlugin">
-          <property name="targetPackage" value="com.example.buddy_match.generateForBuddyUser"/>
-        </plugin>
-        <plugin type="com.example.buddy_match.plugin.CustomSpecsPlugin">
-          <property name="targetPackage" value="com.example.buddy_match.generateForBuddyUser"/>
-        </plugin>
-        <plugin type="com.example.buddy_match.plugin.BaseServicePlugin">
-          <property name="targetPackage" value="com.example.buddy_match.generateForBuddyUser"/>
-        </plugin>
-        <plugin type="com.example.buddy_match.plugin.ServicePlugin">
-          <property name="targetPackage" value="com.example.buddy_match.generateForBuddyUser"/>
-        </plugin>
-        <plugin type="com.example.buddy_match.plugin.ServiceImplPlugin">
-          <property name="targetPackage" value="com.example.buddy_match.generateForBuddyUser"/>
-        </plugin>
-        <plugin type="com.example.buddy_match.plugin.ControllerPlugin">
-          <property name="targetPackage" value="com.example.buddy_match.generateForBuddyUser"/>
-        </plugin> -->
-
 
         <jdbcConnection driverClass="com.mysql.cj.jdbc.Driver"
-                        connectionURL="jdbc:mysql://localhost:3306/Test?useSSL=false&amp;serverTimezone=Asia/Shanghai"
+                        connectionURL="jdbc:mysql://localhost:3306/ATest?useSSL=false&amp;serverTimezone=Asia/Shanghai"
                         userId="admin"
                         password="123456">
                         <!-- <property name="nullCatalogMeansCurrent" value="true" /> -->
@@ -68,15 +40,15 @@
         </javaClientGenerator>
 
         <!-- Database Table -->
-        <table schema="Test" tableName="team" domainObjectName="Team">
+        <table schema="ATest" catalog="ATest" tableName="team" domainObjectName="Team">
           <generatedKey column="id" sqlStatement="JDBC" identity="true"/>
         </table>
 
-        <table schema="Test" tableName="team_user" domainObjectName="TeamUser">
+        <table schema="ATest" catalog="ATest" tableName="team_user" domainObjectName="TeamUser">
           <generatedKey column="id" sqlStatement="JDBC" identity="true"/>
         </table>
 
-        <table schema="Test" tableName="buddy_user" domainObjectName="BuddyUser">
+        <table schema="ATest" catalog="ATest" tableName="buddy_user" domainObjectName="BuddyUser">
           <generatedKey column="id" sqlStatement="JDBC" identity="true"/>
         </table>
 

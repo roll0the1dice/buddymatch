@@ -1,6 +1,6 @@
 package com.example.buddy_match.util;
 
-import com.example.buddy_match.model.Team;
+import com.example.buddy_match.model.atest.Team;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Predicate;
@@ -91,11 +91,11 @@ public class CustomSpecs<T>  {
         return this;
     }
 
-    public CustomSpecs<T> _equal(String fieldKey, Object fieldValue) {
+    public CustomSpecs<T> _notEqual(String fieldKey, Object fieldValue) {
         if (fieldValue == null || fieldValue == null) return this;
         fieldList.push(fieldKey);
         valueList.push(fieldValue);
-        compOpList.push(Operator.EQUAL);
+        compOpList.push(Operator.NOT_EQUAL);
         assert(fieldList.size() == valueList.size());
         assert(compOpList.size() == fieldList.size());
         if (boolOps.size() < fieldList.size()) 
@@ -103,11 +103,11 @@ public class CustomSpecs<T>  {
         return this;
     }
 
-    public CustomSpecs<T> _notEqual(String fieldKey, Object fieldValue) {
+    public CustomSpecs<T> _equal(String fieldKey, Object fieldValue) {
         if (fieldValue == null || fieldValue == null) return this;
         fieldList.push(fieldKey);
         valueList.push(fieldValue);
-        compOpList.push(Operator.NOT_EQUAL);
+        compOpList.push(Operator.EQUAL);
         assert(fieldList.size() == valueList.size());
         assert(compOpList.size() == fieldList.size());
         if (boolOps.size() < fieldList.size()) 
@@ -151,18 +151,6 @@ public class CustomSpecs<T>  {
         return this;
     }
 
-    // public CustomSpecs<T> _isNotEmpty(String fieldKey) {
-    //     if (fieldKey == null) return this;
-    //     fieldList.push(fieldKey);
-    //     valueList.push(new Object());
-    //     compOpList.push(Operator.Is_Not_Empty);
-    //     assert(fieldList.size() == valueList.size());
-    //     assert(compOpList.size() == fieldList.size());
-    //     if (boolOps.size() < fieldList.size()) 
-    //     boolOps.push(Operator.AND);
-    //     return this;
-    // }
-
     public CustomSpecs<T> _greaterThan(String fieldKey, Object fieldValue) {
         if (fieldValue == null || fieldValue == null) return this;
         fieldList.push(fieldKey);
@@ -199,6 +187,18 @@ public class CustomSpecs<T>  {
         return this;
     }
 
+        // public CustomSpecs<T> _isNotEmpty(String fieldKey) {
+    //     if (fieldKey == null) return this;
+    //     fieldList.push(fieldKey);
+    //     valueList.push(new Object());
+    //     compOpList.push(Operator.Is_Not_Empty);
+    //     assert(fieldList.size() == valueList.size());
+    //     assert(compOpList.size() == fieldList.size());
+    //     if (boolOps.size() < fieldList.size()) 
+    //     boolOps.push(Operator.AND);
+    //     return this;
+    // }
+
     public Specification<T> _generateSpecifications() {
         Specification<T> combinedSpec = Specification.where(null);
         assert(valueList.size() == boolOps.size());
@@ -230,6 +230,6 @@ public class CustomSpecs<T>  {
 
     enum Operator {
 
-         EQUAL, NOT_EQUAL, Is_Not_Null, LIKE, NOT_LIKE, Is_Not_Empty, GREATER_THAN, LESS_THAN, IN, AND, OR;
+        EQUAL, NOT_EQUAL, Is_Not_Null, LIKE, NOT_LIKE, Is_Not_Empty, GREATER_THAN, LESS_THAN, IN, AND, OR;
     }
 }

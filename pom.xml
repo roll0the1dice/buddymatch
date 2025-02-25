@@ -55,7 +55,11 @@
    </dependency>
 
 
-
+   <dependency>
+    <groupId>com.github.xiaoymin</groupId>
+    <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
+    <version>4.4.0</version>
+  </dependency>	
 		
 		<!-- <dependency>
 				<groupId>io.lettuce.core</groupId>
@@ -74,6 +78,23 @@
 			<version>2.10.1</version>
 		</dependency>
 
+		<dependency>
+			<groupId>com.example</groupId>
+			<artifactId>custom-plugin</artifactId>
+			<version>1.0.1</version>
+		</dependency>
+
+		<dependency>
+				<groupId>cn.dev33</groupId>
+				<artifactId>sa-token-spring-boot3-starter</artifactId>
+				<version>1.40.0</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.redisson</groupId>
+			<artifactId>redisson</artifactId>
+			<version>3.44.0</version>
+		</dependency>
 
 		<dependency>
 			<groupId>org.mybatis.generator</groupId>

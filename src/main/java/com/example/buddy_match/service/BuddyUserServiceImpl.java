@@ -32,23 +32,23 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import com.example.buddy_match.constant.UserConstant;
 import com.example.buddy_match.contorller.BuddyUserController;
-import com.example.buddy_match.dto.CustomPageImpl;
-import com.example.buddy_match.model.BuddyUser;
+import com.example.buddy_match.exception.BuddyUserNotFoundException;
+import com.example.buddy_match.exception.BusinessException;
+import com.example.buddy_match.exception.ErrorCode;
+import com.example.buddy_match.model.atest.BuddyUser;
 import com.example.buddy_match.request.BuddyUserUpdateRequest;
-import com.example.buddy_match.service.baseService.BadRequestException;
-import com.example.buddy_match.service.baseService.BuddyUserBaseService;
-import com.example.buddy_match.service.baseService.BuddyUserModelAssembler;
-import com.example.buddy_match.service.baseService.BuddyUserNotFoundException;
-import com.example.buddy_match.service.baseService.BuddyUserRepository;
+import com.example.buddy_match.service.base.BuddyUserBaseService;
+import com.example.buddy_match.service.base.BuddyUserRepository;
 import com.example.buddy_match.util.AlgorithmUtils;
+import com.example.buddy_match.util.CustomPageImpl;
 import com.example.buddy_match.util.CustomSpecs;
-import com.example.buddy_match.util.ValidationUtil;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import ch.qos.logback.core.util.StringUtil;
 import io.micrometer.common.util.StringUtils;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
+import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 
 /**
@@ -57,25 +57,13 @@ import jakarta.servlet.http.HttpServletRequest;
 @Service
 public class BuddyUserServiceImpl extends BuddyUserBaseService implements BuddyUserService {
     /** This is an example repository. */
+    @Resource
     private BuddyUserRepository repository;
-
-    /** This is an example modelAssembler. */
-    private BuddyUserModelAssembler assembler;
-
-    @Autowired
-    private PagedResourcesAssembler<BuddyUser> pagedResourcesAssembler;
 
     public static final String USER_LOGIN_STATE = "USER_LOGIN_STATE";
 
     public BuddyUserServiceImpl() {
         super();
-    }
-
-    @Autowired
-    public BuddyUserServiceImpl(BuddyUserRepository repository, BuddyUserModelAssembler assembler) {
-        super(repository, assembler);
-        this.repository = repository;
-        this.assembler = assembler;
     }
 
     @Override
@@ -85,33 +73,32 @@ public class BuddyUserServiceImpl extends BuddyUserBaseService implements BuddyU
         return 1;
     }
 
-    public CollectionModel<EntityModel<BuddyUser>> searchUserByTags(List<String> tagNameList) {
+    public List<BuddyUser> searchUserByTags(List<String> tagNameList) {
         if (CollectionUtils.isEmpty(tagNameList)) {
             throw new BuddyUserNotFoundException();
         }
 
         CustomSpecs<BuddyUser> customSpecs = new CustomSpecs<BuddyUser>();
+
         for (var tagName : tagNameList) {
             customSpecs = customSpecs._like("tagName", tagName);
         }
 
-        List<EntityModel<BuddyUser>> userList = repository.findAll(customSpecs._generateSpecifications()).stream()
-                .map(assembler::toModel)
-                .collect(Collectors.toList());
+        List<BuddyUser> userList = repository.findAll(customSpecs._generateSpecifications()).stream().toList();
 
-        return CollectionModel.of(userList, linkTo(methodOn(BuddyUserController.class).all()).withSelfRel());
+        return userList;
 
     }
 
     // @Override
     public String registerUser(String userName, String userPassword, String checkPassword) {
         // 验证用户名和密码是否包含特殊字符
-        if (ValidationUtil.hasSpecialCharacters(userName)) {
-            return "用户名不能包含特殊字符";
-        }
-        if (ValidationUtil.hasSpecialCharacters(userPassword)) {
-            return "密码不能包含特殊字符";
-        }
+        // if (ValidationUtil.hasSpecialCharacters(userName)) {
+        //     return "用户名不能包含特殊字符";
+        // }
+        // if (ValidationUtil.hasSpecialCharacters(userPassword)) {
+        //     return "密码不能包含特殊字符";
+        // }
         CustomSpecs<BuddyUser> customSpecs = new CustomSpecs<BuddyUser>();
         customSpecs._equal("username", userName);
         // 检查用户名是否已经存在
@@ -140,11 +127,11 @@ public class BuddyUserServiceImpl extends BuddyUserBaseService implements BuddyU
         if (userPassword.length() < 5)
             return null;
 
-        if (ValidationUtil.hasSpecialCharacters(userName))
-            return null;
+        // if (ValidationUtil.hasSpecialCharacters(userName))
+        //     return null;
 
-        if (ValidationUtil.hasSpecialCharacters(userPassword))
-            return null;
+        // if (ValidationUtil.hasSpecialCharacters(userPassword))
+        //     return null;
 
         CustomSpecs<BuddyUser> customSpecs = new CustomSpecs<BuddyUser>();
         customSpecs._equal("username", userName)._equal("password", userPassword);
@@ -194,28 +181,23 @@ public class BuddyUserServiceImpl extends BuddyUserBaseService implements BuddyU
         }
     }
 
-    public CollectionModel<EntityModel<BuddyUser>> searchUser(@RequestParam String username) {
+    public List<BuddyUser> searchUser(@RequestParam String username) {
 
         if (!StringUtils.isNotBlank(username))
-            return CollectionModel.of(Collections.emptyList());
+            return new ArrayList<>();
 
         CustomSpecs<BuddyUser> customSpecs = new CustomSpecs<BuddyUser>();
         customSpecs._like("username", username);
 
-        List<EntityModel<BuddyUser>> testusers = repository.findAll(customSpecs._generateSpecifications()).stream()
-                .map(assembler::toModel)
-                .collect(Collectors.toList());
+        List<BuddyUser> testusers = repository.findAll(customSpecs._generateSpecifications()).stream().toList();
 
-        if (testusers.isEmpty())
-            return CollectionModel.of(Collections.emptyList());
-
-        return CollectionModel.of(testusers, linkTo(methodOn(BuddyUserController.class).all()).withSelfRel());
+        return testusers;
     }
 
-    public ResponseEntity<?> updateBuddyUser(@RequestBody BuddyUserUpdateRequest buddyUserUpdateRequest) throws IllegalAccessException, NoSuchFieldException  {
+    public BuddyUser updateBuddyUser(@RequestBody BuddyUserUpdateRequest buddyUserUpdateRequest) throws IllegalAccessException, NoSuchFieldException  {
 
         if (StringUtils.isEmpty(buddyUserUpdateRequest.getId().toString()))
-            throw new BadRequestException("参数错误");
+            throw new BusinessException(ErrorCode.PARAMS_ERROR.toString());
 
         CustomSpecs<BuddyUser> customSpecs = new CustomSpecs<>();
         customSpecs._equal("id", buddyUserUpdateRequest.getId());
@@ -223,7 +205,7 @@ public class BuddyUserServiceImpl extends BuddyUserBaseService implements BuddyU
         Optional<BuddyUser> _findModel = repository.findOne(customSpecs._generateSpecifications());
 
         if (_findModel.isEmpty())
-            throw new BadRequestException("参数错误");
+            throw new BusinessException(ErrorCode.PARAMS_ERROR.toString());
 
         BuddyUser buddyUser = _findModel.get();
 
@@ -242,10 +224,8 @@ public class BuddyUserServiceImpl extends BuddyUserBaseService implements BuddyU
 
         BuddyUser _updateModel = repository.save(buddyUser);
 
-        EntityModel<BuddyUser> entityModel = assembler.toModel(_updateModel);
-        return ResponseEntity
-                .created(entityModel.getRequiredLink(IanaLinkRelations.SELF).toUri())
-                .body(entityModel);
+
+        return _updateModel;
     }
 
     public CustomPageImpl<BuddyUser> getUsers(int page, int size) {
@@ -253,7 +233,7 @@ public class BuddyUserServiceImpl extends BuddyUserBaseService implements BuddyU
 
         List<BuddyUser> pageUserList = repository.findAll(pageable).toList();
 
-        return new CustomPageImpl<BuddyUser>(pageUserList, pageable, pageUserList.size());
+        return new CustomPageImpl<BuddyUser>(pageUserList, pageable, (long)pageUserList.size());
     }
 
     public boolean isAdmin(HttpServletRequest httpServletRequest) {
@@ -266,7 +246,7 @@ public class BuddyUserServiceImpl extends BuddyUserBaseService implements BuddyU
         return loginUser != null && loginUser.getUserRole() == UserConstant.ADMIN_ROLE;
     }
 
-    public CollectionModel<BuddyUser> matchUsers(Long num, BuddyUser loginUser) {
+    public List<BuddyUser> matchUsers(Long num, BuddyUser loginUser) {
         CustomSpecs<BuddyUser> customSpecs = new CustomSpecs<>();
         customSpecs._isNotNull("tagName");
         List<BuddyUser> userList = repository.findAll(customSpecs._generateSpecifications());
@@ -311,12 +291,12 @@ public class BuddyUserServiceImpl extends BuddyUserBaseService implements BuddyU
             finalUserList.add(userIdUserListMap.get(userId).get(0));
         }
 
-        return CollectionModel.of(finalUserList);
+        return finalUserList;
     }
 
     public Optional<BuddyUser> getUserByUserId(Long userId) {
         CustomSpecs<BuddyUser> customSpecs = new CustomSpecs<>();
-        customSpecs._equal("userId", userId);
+        customSpecs._equal("id", userId);
 
         return repository.findOne(customSpecs._generateSpecifications());
     }

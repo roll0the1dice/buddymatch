@@ -1,16 +1,23 @@
 package com.example.buddy_match.contorller;
 
-import com.example.buddy_match.dto.CustomPageImpl;
-import com.example.buddy_match.model.BuddyUser;
-import com.example.buddy_match.model.Team;
+
+import com.example.buddy_match.exception.ErrorCode;
+import com.example.buddy_match.model.atest.BuddyUser;
+import com.example.buddy_match.model.atest.Team;
+import com.example.buddy_match.model.atest.TeamUser;
 import com.example.buddy_match.request.TeamAddedRequest;
 import com.example.buddy_match.service.BuddyUserServiceImpl;
 import com.example.buddy_match.service.TeamServiceImpl;
+import com.example.buddy_match.service.TeamUserService;
+import com.example.buddy_match.service.TeamUserServiceImpl;
 import com.example.buddy_match.util.ApiResponse;
+import com.example.buddy_match.util.CustomPageImpl;
+import com.example.buddy_match.util.ThrowUtils;
 
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 
+import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,45 +45,45 @@ import org.springframework.web.bind.annotation.RestController;
 public class TeamController {
     /** This is an example service. */
     @Resource
-    private TeamServiceImpl service;
-
-    @Resource
     private BuddyUserServiceImpl buddyUserServiceImpl;
 
-    @Autowired
-    private RedisTemplate<String, Object> redisTemplate;
+    @Resource
+    private TeamUserServiceImpl teamUserService;
+
+    @Resource
+    private TeamServiceImpl service;
 
     public TeamController(TeamServiceImpl service) {
         this.service = service;
     }
 
     @GetMapping("/all")
-    public ResponseEntity<?> all() {
-        return ApiResponse.success(service.all());
+    public ResponseEntity<ApiResponse<CustomPageImpl<Team>>> all(@RequestParam(defaultValue = "0") Integer page, @RequestParam(defaultValue = "10") Integer size) {
+        return ApiResponse.success(service.all(page,size));
     }
 
     @PostMapping("/create")
-    public ResponseEntity<?> create(@RequestBody Team newTeam) {
+    public ResponseEntity<ApiResponse<Team>> create(@RequestBody Team newTeam) {
         return ApiResponse.success(service.create(newTeam));
     }
 
     @GetMapping("/one/{id}")
-    public ResponseEntity<?> one(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<Team>> one(@PathVariable Long id) {
         return ApiResponse.success(service.one(id));
     }
 
     @PutMapping("/replaceTeam/{id}")
-    public ResponseEntity<?> replaceTeam(@RequestBody Team newTeam, @PathVariable Long id) {
-        return ApiResponse.success(service.replaceTeam(newTeam, id));
+    public ResponseEntity<ApiResponse<Team>> replaceTeam(@RequestBody Team newTeam, @PathVariable Long id) {
+        return ApiResponse.success(service.replaceTeam(newTeam,id));
     }
 
     @DeleteMapping("/deleteTeam/{id}")
-    public ResponseEntity<?> deleteTeam(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<Boolean>> deleteTeam(@PathVariable Long id) {
         return ApiResponse.success(service.deleteTeam(id));
     }
 
     @GetMapping("/getTeamByPage")
-    public ResponseEntity<?> getTeamByPage(@RequestParam(defaultValue = "0") int page,
+    public ResponseEntity<ApiResponse<CustomPageImpl<Team>>> getTeamByPage(@RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size, @RequestParam(defaultValue = "0") int status,
             HttpServletRequest request) {
 
@@ -112,10 +119,12 @@ public class TeamController {
     }
 
     @PostMapping("/add")
-    public ResponseEntity<?> addTeam(@RequestBody TeamAddedRequest entity, HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<Team>> addTeam(@RequestBody TeamAddedRequest entity, HttpServletRequest request) {
         BuddyUser loginUser = buddyUserServiceImpl.getCurrent(request);
         if (loginUser == null)
             return ApiResponse.fail(40010, "用户未登录");
+
+        BuddyUser user = buddyUserServiceImpl.getCurrent(request);
 
         Team team = new Team();
         team.setDescription(entity.getDescription());
@@ -124,9 +133,20 @@ public class TeamController {
         team.setPassword(entity.getPassword());
         team.setTeamName(entity.getTeamName());
         team.setTeamStatus(entity.getTeamStatus());
-        team.setUserId(entity.getUserId());
+        team.setCreateTime(new Date());
+        team.setUpdateTime(new Date());
+        team.setUserId(user.getId());
 
-        return ApiResponse.success(service.create(team));
+        Team  _team = service.create(team);
+        //_team = service.one(_team.getId());
+        _team.setHasJoin((byte) 1);
+        _team.setHasJoinNum((byte) 1);
+        
+        TeamUser teamUser = teamUserService.joinTeam(user.getId(), _team.getId());
+
+        ThrowUtils.throwIf(teamUser==null, ErrorCode.PARAMS_ERROR);
+
+        return ApiResponse.success(team);
     }
 
 }
